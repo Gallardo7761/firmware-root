@@ -10,7 +10,6 @@
 #include "task.h"
 #include "tsl2591.h"
 #include "sh1106.h"
-#include "sht40.h"
 #include "ui.h"
 #include "util.h"
 #include "main.h"
@@ -18,22 +17,18 @@
 extern SPI_HandleTypeDef hspi1;
 
 QueueHandle_t xTslMailbox = NULL;
-QueueHandle_t xShtMailbox = NULL;
 SemaphoreHandle_t xI2C2Mutex;
 EventGroupHandle_t xSyncEventGroup = NULL;
 TaskHandle_t ui_task_handle;
 TaskHandle_t tsl2591_task_handle;
-TaskHandle_t sht40_task_handle;
 TaskHandle_t spi_test_handle;
 
-bool Tasks_Init(TSL2591_Handle_t *tsl_h, SHT40_Handle_t *sht_h, SH1106_Handle_t *disp_h)
+bool Tasks_Init(TSL2591_Handle_t *tsl_h, SH1106_Handle_t *disp_h)
 {
     if (tsl_h == NULL || disp_h == NULL) return false;
 
     xTslMailbox = xQueueCreate(1, sizeof(SensorDataMsg_t));
     if (xTslMailbox == NULL) return false;
-    xShtMailbox = xQueueCreate(1, sizeof(SensorDataMsg_t));
-    if (xShtMailbox == NULL) return false;
 
     xSyncEventGroup = xEventGroupCreate();
     if (xSyncEventGroup == NULL) return false;
@@ -50,16 +45,6 @@ bool Tasks_Init(TSL2591_Handle_t *tsl_h, SHT40_Handle_t *sht_h, SH1106_Handle_t 
         tsl_h,
         2,
         &tsl2591_task_handle
-    );
-    if (ret != pdPASS) return false;
-
-    ret = xTaskCreate(
-        SHT40_Measure_Task,
-        "SHT40 Task",
-        256,
-        sht_h,
-        2,
-        &sht40_task_handle
     );
     if (ret != pdPASS) return false;
 
@@ -141,43 +126,12 @@ void TSL2591_Measure_Task(void *pvParameters)
     }
 }
 
-void SHT40_Measure_Task(void *pvParameters)
-{
-    SHT40_Handle_t *sht40_h = (SHT40_Handle_t *)pvParameters;
-    if (sht40_h == NULL) vTaskDelete(NULL);
-
-    float temp = 0.0f;
-    float hum = 0.0f;
-    SensorDataMsg_t msg;
-    msg.type = SENSOR_TYPE_SHT40;
-
-    for (;;) {
-        ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
-
-        xSemaphoreTake(xI2C2Mutex, portMAX_DELAY);
-        SHT40_Status_t st = SHT40_Read(sht40_h, &temp, &hum);
-        xSemaphoreGive(xI2C2Mutex);
-
-        if ( st == SHT40_OK) {
-            msg.timestamp_ms = xTaskGetTickCount() * portTICK_PERIOD_MS;
-            msg.data.sht40.temperature = temp;
-            msg.data.sht40.humidity = hum;
-
-            xQueueOverwrite(xShtMailbox, &msg);
-        }
-
-        xEventGroupSetBits(xSyncEventGroup, FLAG_SHT_DONE);
-    }
-}
-
 void UI_Task(void *pvParameters)
 {
     SH1106_Handle_t *disp_h = (SH1106_Handle_t *)pvParameters;
     if (disp_h == NULL) vTaskDelete(NULL);
 
     /* Cached latest data */
-    float last_temp = 0.0f;
-    float last_hum = 0.0f;
     float last_lux = 0.0f;
     uint8_t battery_pct = 85;   // TODO real battery level
     bool lora_connected = true; // TODO real connection status
@@ -191,26 +145,11 @@ void UI_Task(void *pvParameters)
         ulTaskNotifyTake(pdTRUE, portMAX_DELAY);
 
         if (xQueuePeek(xTslMailbox, &msg, 0) == pdPASS) last_lux = msg.data.tsl2591.lux;
-        if (xQueuePeek(xShtMailbox, &msg, 0) == pdPASS) {
-            last_temp = msg.data.sht40.temperature;
-            last_hum  = msg.data.sht40.humidity;
-        }
 
         SH1106_Clear(disp_h);
 
         UI_Container_Split_V(&root_screen, &status_bar_view, &main_view, 18);
         UI_Draw_Status_Bar(disp_h, &status_bar_view, "Croppy v1.0", battery_pct, lora_connected);
-
-        FloatSplit_t hum_split = Util_Split_Float(last_hum, 1);
-        UI_Container_Draw_Icon(disp_h, &main_view, 0, 2, ICON_15x15_HUMIDITY, SH1106_PIXEL_ON);
-        UI_Container_Draw_Text(disp_h, &main_view, 17, 2, SH1106_PIXEL_ON, &Font_10x16,
-                      "Hum:  %d.%u%%", hum_split.integer_part, hum_split.decimal_part);
-
-        FloatSplit_t temp_split = Util_Split_Float(last_temp, 1);
-        UI_Container_Draw_Icon(disp_h, &main_view, 0, 18, ICON_15x15_TEMPERATURE, SH1106_PIXEL_ON);
-        UI_Container_Draw_Text(disp_h, &main_view, 17, 18, SH1106_PIXEL_ON, &Font_10x16,
-                      "Temp: %s%d.%uC", temp_split.is_negative ? "-" : "",
-                      temp_split.integer_part, temp_split.decimal_part);
 
         FloatSplit_t lux_split = Util_Split_Float(last_lux, 0);
         UI_Container_Draw_Icon(disp_h, &main_view, 0, 34, ICON_15x15_LUX, SH1106_PIXEL_ON);

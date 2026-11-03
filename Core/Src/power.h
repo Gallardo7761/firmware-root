@@ -3,7 +3,7 @@
  * @author  Jose
  * @date    23/9/26
  * @brief   Energy saving handling
- * @project tfg
+ * @project firmware-root
  */
 
 #ifndef POWER_H

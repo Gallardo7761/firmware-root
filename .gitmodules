@@ -1,9 +1,6 @@
 [submodule "Drivers/TSL2591"]
 	path = Drivers/TSL2591
-	url = git@miarma.net:croppy/tsl2591.git
+	url = git@killobyte.es:croppy/tsl2591.git
 [submodule "Drivers/SH1106"]
 	path = Drivers/SH1106
-	url = git@miarma.net:croppy/sh1106.git
-[submodule "Drivers/SHT40"]
-	path = Drivers/SHT40
-	url = git@miarma.net:croppy/sht40.git
+	url = git@killobyte.es:croppy/sh1106.git

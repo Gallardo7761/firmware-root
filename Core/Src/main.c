@@ -62,7 +62,6 @@ const osThreadAttr_t defaultTask_attributes = {
 /* USER CODE BEGIN PV */
 static SH1106_Handle_t display_handle;
 static TSL2591_Handle_t tsl_handle;
-static SHT40_Handle_t sht_handle;
 volatile bool button_wake_requested = false;
 /* USER CODE END PV */
 
@@ -143,7 +142,6 @@ int main(void)
   bool init_ok = true;
   if (SH1106_Init(&display_handle, &display_config) != HAL_OK) init_ok = false;
   if (TSL2591_Init(&tsl_handle, &lux_config) != HAL_OK) init_ok = false;
-  if (SHT40_Init(&sht_handle, &hi2c2, SHT40_ADDRESS) != SHT40_OK) init_ok = false;
   HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, init_ok ? GPIO_PIN_SET : GPIO_PIN_RESET);
   /* USER CODE END 2 */
 
@@ -171,7 +169,7 @@ int main(void)
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
-  if (!Tasks_Init(&tsl_handle, &sht_handle, &display_handle)) Error_Handler();
+  if (!Tasks_Init(&tsl_handle, &display_handle)) Error_Handler();
   /* USER CODE END RTOS_THREADS */
 
   /* USER CODE BEGIN RTOS_EVENTS */
@@ -512,10 +510,9 @@ void StartDefaultTask(void *argument)
         xSemaphoreGive(xI2C2Mutex);
 
         xTaskNotifyGive(tsl2591_task_handle);
-        xTaskNotifyGive(sht40_task_handle);
 
         xEventGroupWaitBits(xSyncEventGroup,
-                            (FLAG_TSL_DONE | FLAG_SHT_DONE),
+                            FLAG_TSL_DONE,
                             pdTRUE,
                             pdTRUE,
                             portMAX_DELAY);

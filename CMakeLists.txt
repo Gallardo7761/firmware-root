@@ -8,7 +8,7 @@ endif()
 # compile_commands.json for clangd/CLion
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-project(tfg C ASM)
+project(firmware-root C ASM)
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -30,11 +30,9 @@ target_sources(${PROJECT_NAME} PRIVATE
 add_subdirectory(cmake/stm32cubemx)
 add_subdirectory(Drivers/SH1106)
 add_subdirectory(Drivers/TSL2591)
-add_subdirectory(Drivers/SHT40)
 
 target_link_libraries(${PROJECT_NAME}
         stm32cubemx
         sh1106
         tsl2591
-        sht40
 )
