@@ -120,7 +120,7 @@ void UI_Container_Draw_Icon(SH1106_Handle_t *h, const UI_Container_t *c, uint8_t
     const uint8_t *bitmap_ptr = NULL;
     uint8_t size = 0;
 
-    if (icon > ICON_7x7_BATTERY_EMPTY) {
+    if (icon >= ICON_7x7_BATTERY_EMPTY) {
         bitmap_ptr = UI_Icons7x7[icon - ICON_7x7_BATTERY_EMPTY];
         size = 7;
     } else {
@@ -128,7 +128,7 @@ void UI_Container_Draw_Icon(SH1106_Handle_t *h, const UI_Container_t *c, uint8_t
         size = 15;
     }
 
-    if ((abs_x + 8 <= c->x + c->w) && (abs_y + 8 <= c->y + c->h)) {
+    if ((abs_x + size <= c->x + c->w) && (abs_y + size <= c->y + c->h)) {
         SH1106_Draw_Bitmap(h, abs_x, abs_y, bitmap_ptr, size, size, state);
     }
 }

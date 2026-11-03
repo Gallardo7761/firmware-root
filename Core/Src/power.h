@@ -10,12 +10,14 @@
 #define POWER_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 /**
- * @brief Make the chip enter STOP mode
+ * @brief Make the chip enter STOP mode only if the flag is false
  * @param seconds The seconds the chip is going to stay in STOP mode
- * @return void
+ * @param abort_flag If it is true, then the chip will not enter STOP mode
+ * @return bool If the chip has entered/has not entered STOP mode
  */
-void Power_Enter_Stop_Mode(uint32_t seconds);
+bool Power_Enter_Stop_Mode(uint32_t seconds, volatile bool *abort_flag);
 
 #endif //POWER_H

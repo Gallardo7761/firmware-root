@@ -23,6 +23,8 @@ target_sources(${PROJECT_NAME} PRIVATE
         Core/Src/tasks.c
         Core/Src/util.c
         Core/Src/power.c
+        Core/Src/font_10x16.c
+        Core/Src/font_5x8.c
 )
 
 add_subdirectory(cmake/stm32cubemx)

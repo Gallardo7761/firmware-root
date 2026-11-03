@@ -13,7 +13,7 @@
 extern RTC_HandleTypeDef hrtc;
 extern void SystemClock_Config(void);
 
-void Power_Enter_Stop_Mode(uint32_t seconds)
+bool Power_Enter_Stop_Mode(uint32_t seconds, volatile bool *abort_flag)
 {
     // deactivate the RTC
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
@@ -21,6 +21,14 @@ void Power_Enter_Stop_Mode(uint32_t seconds)
     __HAL_RTC_WAKEUPTIMER_CLEAR_FLAG(&hrtc, RTC_FLAG_WUTF);
     // charge the timer with 'seconds' seconds @1Hz
     HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, seconds - 1, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
+
+    __disable_irq();
+    // the ISR may have set the flag after the caller checked it
+    if (abort_flag != NULL && *abort_flag) {
+        __enable_irq();
+        HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
+        return false;
+    }
 
     // disable TIM1 update interrupt
     HAL_SuspendTick();
@@ -38,7 +46,12 @@ void Power_Enter_Stop_Mode(uint32_t seconds)
     // resume TIM1 update interrupt
     HAL_ResumeTick();
 
+    // pending EXTI/RTC ISR runs here, when the clocks have been restored again
+    __enable_irq();
+
     // deactivate the timer to avoid random interrupts
     HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
+
+    return true;
 }
 

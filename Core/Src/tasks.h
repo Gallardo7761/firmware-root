@@ -15,6 +15,7 @@
 #include "FreeRTOS.h"
 #include "event_groups.h"
 #include "queue.h"
+#include "semphr.h"
 #include "tsl2591.h"
 #include "sh1106.h"
 #include "sht40.h"
@@ -45,15 +46,19 @@ typedef struct {
  } data;
 } SensorDataMsg_t;
 
-extern QueueHandle_t xSensorQueue;
+extern QueueHandle_t xTslMailbox;
+extern QueueHandle_t xShtMailbox;
+extern SemaphoreHandle_t xI2C2Mutex;
 extern EventGroupHandle_t xSyncEventGroup;
 extern TaskHandle_t ui_task_handle;
 extern TaskHandle_t tsl2591_task_handle;
 extern TaskHandle_t sht40_task_handle;
+extern TaskHandle_t spi_test_handle;
 
 void TSL2591_Measure_Task(void *pvParameters);
 void SHT40_Measure_Task(void *pvParameters);
 void UI_Task(void *pvParameters);
+void SPI_Test_Task(void *pvParameters);
 
 bool Tasks_Init(TSL2591_Handle_t *tsl_h, SHT40_Handle_t *sht_h, SH1106_Handle_t *disp_h);
 
